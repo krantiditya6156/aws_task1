@@ -8,6 +8,10 @@ Parameters:
     Description: Enter destination bucket name
     Type: String
 
+  LambdaCodeBucketName:
+    Description: Enter lambda code bucket name
+    Type: String
+
 Resources:
   SourceBucket:
     Type: AWS::S3::Bucket 
@@ -74,5 +78,5 @@ Resources:
           "SourceBucketName": !Ref SourceBucketName
           "DestinationBucketName": !Ref DestinationBucketName
       Code:
-        S3Bucket: lambda-code-bucket789
+        S3Bucket: !Ref LambdaCodeBucketName
         S3Key: lambda-code.zip

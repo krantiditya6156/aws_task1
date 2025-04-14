@@ -5,10 +5,12 @@ from os.path import dirname, join, basename
 
 ZIP_FILE = "lambda-code.zip"
 LAMBDA_CODE = "index.py"
-LAMBDA_CODE_BUCKET = "lambda-code-bucket789"
+LAMBDA_CODE_BUCKET_NAME = "lambda-code-bucket789"
 TEMPLATE_FILE = "s3_triggers_lambda_cft.yaml"
 STACK_NAME = "S3-event-lambda-stack2"
 REGION = "ap-south-1"
+SOURCE_BUCKET_NAME = "source-bucket-s573532"
+DESTINATION_BUCKET_NAME = "destination-bucket-s573532"
 
 script_dir = dirname(__file__)
 
@@ -22,7 +24,7 @@ def zip_lambda_code():
 
 def upload_zipfile_to_s3(zip_file_path):
     s3_client = boto3.client('s3', region_name=REGION)
-    s3_client.upload_file(zip_file_path, LAMBDA_CODE_BUCKET, ZIP_FILE)
+    s3_client.upload_file(zip_file_path, LAMBDA_CODE_BUCKET_NAME, ZIP_FILE)
     print("Zip file uploaded to s3 bucket")
     os.remove(zip_file_path)
     
@@ -35,11 +37,15 @@ def deploy_cloudformation_stack():
     params = [
         {
             'ParameterKey': 'SourceBucketName',
-            'ParameterValue': 'source-aditya-573532'
+            'ParameterValue': SOURCE_BUCKET_NAME
         },
         {
             'ParameterKey': 'DestinationBucketName',
-            'ParameterValue': 'destination-aditya-573532'
+            'ParameterValue': DESTINATION_BUCKET_NAME
+        },
+        {
+            'ParameterKey': 'LambdaCodeBucketName',
+            'ParameterValue': LAMBDA_CODE_BUCKET_NAME
         }
     ]
 
