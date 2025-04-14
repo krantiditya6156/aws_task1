@@ -1,14 +1,22 @@
 ---
+Parameters:
+  SourceBucketName:
+    Description: Enter source bucket name
+    Type: String
+
+  DestinationBucketName:
+    Description: Enter destination bucket name
+    Type: String
+
 Resources:
   SourceBucket:
-    Type: AWS::S3::Bucket
+    Type: AWS::S3::Bucket 
     Properties:
+      BucketName: !Ref SourceBucketName
       NotificationConfiguration:
         LambdaConfigurations:
-          - Event: s3:ObjectCreated:*
-            Function: !GetAtt LambdaFunctionForS3event.Arn
-    DependsOn: 
-      - S3InvokePermission
+          - Event: "s3:ObjectCreated:*"
+            Function: !GetAtt LambdaFunctionForS3event.Arn 
 
   S3InvokePermission:
     Type: AWS::Lambda::Permission
@@ -17,10 +25,13 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: s3.amazonaws.com
       SourceAccount: !Ref 'AWS::AccountId'
-      SourceArn: !Sub 'arn:aws:s3:::${SourceBucket}'
+      SourceArn: !Sub 'arn:aws:s3:::${SourceBucketName}'
 
   DestinationBucket:
     Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref DestinationBucketName
+
     
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -44,12 +55,10 @@ Resources:
                 Action:
                   - s3:GetObject
                   - s3:PutObject
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
                 Resource:
-                  - arn:aws:s3:::${SourceBucket}/*
-                  - arn:aws:s3:::${DestinationBucket}/*
+                  - !Sub arn:aws:s3:::${SourceBucketName}/*
+                  - !Sub arn:aws:s3:::${DestinationBucketName}/*
+      
       Description: lambda execuation role policies
 
   LambdaFunctionForS3event:
@@ -60,18 +69,22 @@ Resources:
         source bucket and copies the object to the destination bucket.
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.12
+      Environment: 
+        Variables:
+          "SourceBucketName": !Ref SourceBucketName
+          "DestinationBucketName": !Ref DestinationBucketName
       Code:
-        ZipFile: >
+        ZipFile: |
           import json
-
+          import os
           import boto3
 
 
           def lambda_handler(event, context):
               print(event)
 
-              source_bucket_name = "source-bucket-m009"
-              destination_bucket_name = "destination-bucket-m009"
+              source_bucket_name = os.environ["SourceBucketName"]
+              destination_bucket_name = os.environ["DestinationBucketName"]
 
               bucket_name = event['Records'][0]['s3']['bucket']['name']
               print("bucket_name: ", event['Records'][0]['s3']['bucket']['name'])
@@ -91,6 +104,7 @@ Resources:
                       print("Source bucket or Destination bucket does not exist")
               except Exception as e:
                   print("Error: ", e)
+                  
 
 
               # TODO implement
@@ -98,5 +112,3 @@ Resources:
                   'statusCode': 200,
                   'body': json.dumps('Hello from Lambda!')
               }
-
-  
