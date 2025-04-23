@@ -1,10 +1,11 @@
-import boto3
-import zipfile
 import os
-from os.path import dirname, join, basename
+import zipfile
+from os.path import basename, dirname, join
+
+import boto3
 
 ZIP_FILE = "lambda-code.zip"
-LAMBDA_CODE = "index.py"
+LAMBDA_CODE = "lambda.py"
 LAMBDA_CODE_BUCKET_NAME = "lambda-code-bucket789"
 TEMPLATE_FILE = "s3_triggers_lambda_cft.yaml"
 STACK_NAME = "S3-event-lambda-stack2"
@@ -14,51 +15,61 @@ DESTINATION_BUCKET_NAME = "destination-bucket-s573532"
 
 script_dir = dirname(__file__)
 
+
 def zip_lambda_code():
     zip_file_path = join(script_dir, ZIP_FILE)
     lambda_code_path = join(script_dir, LAMBDA_CODE)
-    with zipfile.ZipFile(zip_file_path, 'w') as zipf:
+    with zipfile.ZipFile(zip_file_path, "w") as zipf:
         zipf.write(lambda_code_path, arcname=basename(lambda_code_path))
-    print("zip file created")    
+    print("zip file created")
     return zip_file_path
 
+
 def upload_zipfile_to_s3(zip_file_path):
-    s3_client = boto3.client('s3', region_name=REGION)
+    s3_client = boto3.client("s3", region_name=REGION)
     s3_client.upload_file(zip_file_path, LAMBDA_CODE_BUCKET_NAME, ZIP_FILE)
     print("Zip file uploaded to s3 bucket")
     os.remove(zip_file_path)
-    
+
 
 def deploy_cloudformation_stack():
     template_path = join(script_dir, TEMPLATE_FILE)
-    with open(template_path, 'r') as file:
+    with open(template_path, "r") as file:
         stack = file.read()
 
     params = [
+        {"ParameterKey": "SourceBucketName", "ParameterValue": SOURCE_BUCKET_NAME},
         {
-            'ParameterKey': 'SourceBucketName',
-            'ParameterValue': SOURCE_BUCKET_NAME
+            "ParameterKey": "DestinationBucketName",
+            "ParameterValue": DESTINATION_BUCKET_NAME,
         },
         {
-            'ParameterKey': 'DestinationBucketName',
-            'ParameterValue': DESTINATION_BUCKET_NAME
+            "ParameterKey": "LambdaCodeBucketName",
+            "ParameterValue": LAMBDA_CODE_BUCKET_NAME,
         },
-        {
-            'ParameterKey': 'LambdaCodeBucketName',
-            'ParameterValue': LAMBDA_CODE_BUCKET_NAME
-        }
     ]
 
-    cftclient = boto3.client('cloudformation', region_name=REGION)
+    cftclient = boto3.client("cloudformation", region_name=REGION)
 
     try:
-        cftclient.create_stack(StackName=STACK_NAME, TemplateBody=stack, Parameters=params, Capabilities=['CAPABILITY_IAM'])
+        cftclient.create_stack(
+            StackName=STACK_NAME,
+            TemplateBody=stack,
+            Parameters=params,
+            Capabilities=["CAPABILITY_IAM"],
+        )
         print("creating stack")
     except cftclient.exceptions.AlreadyExistsException:
-        cftclient.update_stack(StackName=STACK_NAME, TemplateBody=stack, Parameters=params, Capabilities=['CAPABILITY_IAM'])
+        cftclient.update_stack(
+            StackName=STACK_NAME,
+            TemplateBody=stack,
+            Parameters=params,
+            Capabilities=["CAPABILITY_IAM"],
+        )
         print("updating stack")
     except Exception as e:
         print(e)
+        raise
 
 
 if __name__ == "__main__":

@@ -68,7 +68,7 @@ Resources:
   LambdaFunctionForS3event:
     Type: AWS::Lambda::Function
     Properties:
-      Handler: index.lambda_handler
+      Handler: lambda.lambda_handler
       Description: Lambda function that triggers on S3 object creation event in the
         source bucket and copies the object to the destination bucket.
       Role: !GetAtt LambdaExecutionRole.Arn
